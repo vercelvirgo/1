@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — VercelVirgo</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script type="module">import { initTheme } from "./js/theme.js"; initTheme();</script>
+</head>
+<body>
+  <div class="vv-bg"><div class="vv-bg-mesh"></div><div class="vv-bg-grid"></div></div>
+  
+  
+
+  <div class="auth-page">
+    <div class="auth-card animate-up">
+      <div class="auth-logo">⬡ VercelVirgo</div>
+      <h2 class="auth-title">Welcome Back</h2>
+      <p class="auth-sub">Sign in to your account</p>
+
+      <form id="login-form" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="email">Email Address</label>
+          <div class="input-group">
+            <span class="input-icon">✉️</span>
+            <input type="email" id="email" class="form-input" placeholder="you@example.com" autocomplete="email" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password" style="display:flex;justify-content:space-between">
+            Password
+            <a href="#" id="forgot-link" style="font-size:0.8rem;color:var(--gold);font-weight:normal">Forgot password?</a>
+          </label>
+          <div class="input-group">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="password" class="form-input" placeholder="Your password" autocomplete="current-password" />
+            <button type="button" class="input-action" id="toggle-pass">Show</button>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
+          <input type="checkbox" id="remember" style="width:16px;height:16px;accent-color:var(--gold)" />
+          <label for="remember" style="font-size:0.9rem;color:var(--text-secondary);cursor:pointer">Remember me</label>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full btn-lg" id="submit-btn">
+          🔓 Sign In
+        </button>
+      </form>
+
+      <div class="auth-divider">or</div>
+      <div class="auth-footer">
+        Don't have an account? <a href="register.html">Register Free →</a>
+      </div>
+      <div class="auth-footer" style="margin-top:8px">
+        <a href="admin/" style="color:var(--text-muted);font-size:0.8rem">Admin Panel →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Forgot Password Modal -->
+  <div id="forgot-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Reset Password</span>
+        <button class="modal-close" id="close-forgot">✕</button>
+      </div>
+      <p style="color:var(--text-secondary);margin-bottom:20px;font-size:0.9rem">Enter your email address and we'll send you a password reset link.</p>
+      <div class="form-group">
+        <label class="form-label" for="reset-email">Email Address</label>
+        <input type="email" id="reset-email" class="form-input" placeholder="you@example.com" />
+      </div>
+      <button class="btn btn-primary btn-full" id="send-reset">Send Reset Email</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { auth, db } from './js/firebase-config.js';
+    import {
+      signInWithEmailAndPassword, onAuthStateChanged,
+      sendPasswordResetEmail, setPersistence,
+      browserLocalPersistence, browserSessionPersistence
+    } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    import {
+      showToast, showSpinner, hideSpinner,
+      validateEmail, showFieldError, clearAllErrors
+    } from './js/utils.js';
+
+    // ── Redirect if already logged in
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const snap = await getDoc(doc(db, 'users', user.uid));
+        if (snap.exists() && snap.data().role === 'admin') {
+          window.location.href = 'admin/dashboard.html';
+        } else {
+          window.location.href = 'dashboard.html';
+        }
+      }
+    });
+
+    // ── Toggle password visibility
+    const passInput = document.getElementById('password');
+    document.getElementById('toggle-pass').addEventListener('click', function() {
+      const isPass = passInput.type === 'password';
+      passInput.type = isPass ? 'text' : 'password';
+      this.textContent = isPass ? 'Hide' : 'Show';
+    });
+
+    // ── Login form
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAllErrors(e.target);
+
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const remember = document.getElementById('remember').checked;
+
+      if (!validateEmail(email)) { showFieldError('email', 'Enter a valid email'); return; }
+      if (!password) { showFieldError('password', 'Password is required'); return; }
+
+      showSpinner();
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+
+      try {
+        const persistence = remember ? browserLocalPersistence : browserSessionPersistence;
+        await setPersistence(auth, persistence);
+        const cred = await signInWithEmailAndPassword(auth, email, password);
+        const snap = await getDoc(doc(db, 'users', cred.user.uid));
+
+        if (!snap.exists()) {
+          hideSpinner(); btn.disabled = false;
+          showToast('Account not found. Please register.', 'error');
+          return;
+        }
+
+        const userData = snap.data();
+        if (userData.status === 'suspended') {
+          hideSpinner(); btn.disabled = false;
+          showToast('Your account has been suspended. Contact admin.', 'error');
+          auth.signOut();
+          return;
+        }
+
+        hideSpinner();
+        showToast('Welcome back! 👋', 'success');
+
+        setTimeout(() => {
+          if (userData.role === 'admin') {
+            window.location.href = 'admin/dashboard.html';
+          } else {
+            window.location.href = 'dashboard.html';
+          }
+        }, 800);
+
+      } catch (err) {
+        hideSpinner();
+        btn.disabled = false;
+        let msg = 'Login failed. Please try again.';
+        if (err.code === 'auth/user-not-found')   msg = 'No account found with this email.';
+        if (err.code === 'auth/wrong-password')    msg = 'Incorrect password.';
+        if (err.code === 'auth/invalid-credential') msg = 'Invalid email or password.';
+        if (err.code === 'auth/too-many-requests') msg = 'Too many attempts. Try again later.';
+        showToast(msg, 'error');
+      }
+    });
+
+    // ── Forgot Password Modal
+    const modal = document.getElementById('forgot-modal');
+    document.getElementById('forgot-link').addEventListener('click', (e) => {
+      e.preventDefault(); modal.classList.remove('hidden');
+    });
+    document.getElementById('close-forgot').addEventListener('click', () => modal.classList.add('hidden'));
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
+
+    document.getElementById('send-reset').addEventListener('click', async () => {
+      const email = document.getElementById('reset-email').value.trim();
+      if (!validateEmail(email)) { showToast('Enter a valid email address', 'warning'); return; }
+      showSpinner();
+      try {
+        await sendPasswordResetEmail(auth, email);
+        hideSpinner();
+        modal.classList.add('hidden');
+        showToast('Password reset email sent! Check your inbox.', 'success');
+      } catch (err) {
+        hideSpinner();
+        showToast('Failed to send reset email. Check the address and try again.', 'error');
+      }
+    });
+  </script>
+</body>
+</html>

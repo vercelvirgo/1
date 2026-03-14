@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sell Coins — VercelVirgo</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script type="module">import { initTheme } from "./js/theme.js"; initTheme();</script>
+</head>
+<body>
+  <div class="vv-bg"><div class="vv-bg-mesh"></div><div class="vv-bg-grid"></div></div>
+  
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">V</div>
+        <div><div class="sidebar-logo-text">VercelVirgo</div><div class="sidebar-logo-sub">Coin Platform</div></div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-label">Main</div>
+          <a href="dashboard.html" class="nav-link"><span class="nav-icon">🏠</span> Dashboard</a>
+          <a href="buy-coins.html" class="nav-link"><span class="nav-icon">🔼</span> Buy Coins</a>
+          <a href="sell-coins.html" class="nav-link active"><span class="nav-icon">🔽</span> Sell Coins</a>
+          <a href="withdraw.html" class="nav-link"><span class="nav-icon">💸</span> Withdraw</a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-label">Network</div>
+          <a href="team.html" class="nav-link"><span class="nav-icon">👥</span> My Team</a>
+          <a href="leaderboard.html" class="nav-link"><span class="nav-icon">🏆</span> Leaderboard</a>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-avatar" id="user-avatar">?</div>
+          <div><div class="sidebar-user-name" id="user-name">Loading...</div><div class="sidebar-user-email" id="user-email">—</div></div>
+        </div>
+        <button class="btn btn-secondary btn-sm btn-full" id="logout-btn">🚪 Sign Out</button>
+      </div>
+    </aside>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div class="main-content">
+      <header class="main-header">
+        <div style="display:flex;align-items:center;gap:16px">
+          <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+          <div class="main-header-title">Sell <span>Coins</span></div>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <div class="page-header">
+          <h2>🔽 Sell Coins</h2>
+          <p>Sell your coins back to the platform and receive USDT payment</p>
+        </div>
+
+        <div style="max-width:600px">
+          <!-- Balance Card -->
+          <div class="wallet-card mb-24 animate-fade">
+            <div class="wallet-label">Available Balance</div>
+            <div class="wallet-amount" id="wallet-balance">— Coins</div>
+            <div class="wallet-usd" id="wallet-usd">≈ $—</div>
+          </div>
+
+          <!-- Sell Form -->
+          <div class="card animate-up">
+            <h4 style="color:var(--gold);margin-bottom:20px">💱 Sell Coins</h4>
+            <div class="alert alert-info mb-16">
+              ℹ️ Minimum sell amount: <strong id="min-sell-display">100 coins</strong>. Admin will send USDT to your wallet after approving your request.
+            </div>
+
+            <form id="sell-form" novalidate>
+              <div class="form-group">
+                <label class="form-label" for="coin-amount">Coins to Sell</label>
+                <div class="input-group">
+                  <span class="input-icon">🪙</span>
+                  <input type="number" id="coin-amount" class="form-input" placeholder="Enter coin amount" min="1" step="1" />
+                </div>
+              </div>
+
+              <!-- Live USD preview -->
+              <div class="price-calc mb-16">
+                <div>
+                  <div class="price-calc-label">You will receive (USD)</div>
+                  <div style="font-size:0.8rem;color:var(--text-muted)">at <span id="price-rate">$0.10</span> per coin</div>
+                </div>
+                <div class="price-calc-value" id="usd-preview">$0.00</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="usdt-address">Your USDT Wallet Address (TRC20)</label>
+                <div class="input-group">
+                  <span class="input-icon">💳</span>
+                  <input type="text" id="usdt-address" class="form-input" placeholder="Your TRC20 USDT address" />
+                </div>
+                <span class="form-hint">Admin will send USDT to this address after approval</span>
+              </div>
+
+              <button type="submit" class="btn btn-danger btn-full btn-lg" id="submit-btn">
+                🔽 Submit Sell Request
+              </button>
+            </form>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <nav class="mobile-nav">
+    <div class="mobile-nav-inner">
+      <a href="dashboard.html" class="mobile-nav-link"><span class="icon">🏠</span>Home</a>
+      <a href="buy-coins.html" class="mobile-nav-link"><span class="icon">🔼</span>Buy</a>
+      <a href="team.html" class="mobile-nav-link"><span class="icon">👥</span>Team</a>
+      <a href="leaderboard.html" class="mobile-nav-link"><span class="icon">🏆</span>Rank</a>
+      <a href="withdraw.html" class="mobile-nav-link"><span class="icon">💸</span>Withdraw</a>
+    </div>
+  </nav>
+
+  <script type="module">
+    import { auth, db } from './js/firebase-config.js';
+    import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import { doc, getDoc, addDoc, collection, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    import {
+      showToast, showSpinner, hideSpinner, initSidebar,
+      formatUSD, formatCoins, coinsToUSD, validateUSDTAddress
+    } from './js/utils.js';
+
+    let userData = null, coinPrice = 0.10, minSell = 100;
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) { window.location.href = 'login.html'; return; }
+      initSidebar();
+      try {
+        const [settingsSnap, userSnap] = await Promise.all([
+          getDoc(doc(db, 'settings', 'platform')),
+          getDoc(doc(db, 'users', user.uid))
+        ]);
+        if (settingsSnap.exists()) {
+          const s = settingsSnap.data();
+          coinPrice = s.coinPrice || 0.10;
+          minSell   = s.minSellCoins || 100;
+          document.getElementById('price-rate').textContent = formatUSD(coinPrice);
+          document.getElementById('min-sell-display').textContent = formatCoins(minSell) + ' coins';
+        }
+        if (userSnap.exists()) {
+          userData = userSnap.data();
+          const coins = userData.coinBalance || 0;
+          document.getElementById('wallet-balance').textContent = formatCoins(coins) + ' Coins';
+          document.getElementById('wallet-usd').textContent = '≈ ' + formatUSD(coinsToUSD(coins, coinPrice));
+          document.getElementById('user-name').textContent   = userData.fullName || '';
+          document.getElementById('user-email').textContent  = userData.email || '';
+          document.getElementById('user-avatar').textContent = (userData.fullName||'?').charAt(0).toUpperCase();
+          // Pre-fill saved USDT address
+          if (userData.usdtAddress) document.getElementById('usdt-address').value = userData.usdtAddress;
+        }
+      } catch (e) { showToast('Error loading data', 'error'); }
+    });
+
+    document.getElementById('coin-amount').addEventListener('input', function() {
+      const usd = coinsToUSD(this.value, coinPrice);
+      document.getElementById('usd-preview').textContent = formatUSD(usd);
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', async () => { await signOut(auth); window.location.href = 'login.html'; });
+
+    document.getElementById('sell-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const coinAmt = parseInt(document.getElementById('coin-amount').value);
+      const usdtAddr = document.getElementById('usdt-address').value.trim();
+
+      if (!coinAmt || coinAmt <= 0) { showToast('Enter a valid coin amount', 'warning'); return; }
+      if (coinAmt < minSell) { showToast(`Minimum sell amount is ${minSell} coins`, 'warning'); return; }
+      if (!validateUSDTAddress(usdtAddr)) { showToast('Enter a valid USDT TRC20 address (min 25 chars)', 'warning'); return; }
+
+      const balance = userData?.coinBalance || 0;
+      if (coinAmt > balance) { showToast('Insufficient coin balance', 'error'); return; }
+
+      showSpinner();
+      const btn = document.getElementById('submit-btn'); btn.disabled = true;
+      try {
+        const user = auth.currentUser;
+        await addDoc(collection(db, 'coins_transactions'), {
+          userId:      user.uid,
+          userName:    userData?.fullName || '',
+          userEmail:   userData?.email || '',
+          type:        'sell',
+          coins:       coinAmt,
+          usdAmount:   parseFloat(coinsToUSD(coinAmt, coinPrice)),
+          usdtAddress: usdtAddr,
+          status:      'pending',
+          createdAt:   serverTimestamp(),
+          approvedAt:  null,
+          notes:       ''
+        });
+        hideSpinner();
+        showToast('Sell request submitted! Admin will process it soon.', 'success');
+        setTimeout(() => { window.location.href = 'dashboard.html'; }, 2000);
+      } catch (err) {
+        hideSpinner(); btn.disabled = false;
+        showToast('Failed to submit: ' + err.message, 'error');
+      }
+    });
+  </script>
+</body>
+</html>

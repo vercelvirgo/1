@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VercelVirgo — Earn With Coins</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .ticker-wrap{background:rgba(255,255,255,.03);border-top:1px solid var(--border-subtle);border-bottom:1px solid var(--border-subtle);padding:10px 0;overflow:hidden;white-space:nowrap;position:relative;}
+    .ticker-wrap::before,.ticker-wrap::after{content:'';position:absolute;top:0;bottom:0;width:80px;z-index:2;}
+    .ticker-wrap::before{left:0;background:linear-gradient(90deg,var(--bg-primary),transparent);}
+    .ticker-wrap::after{right:0;background:linear-gradient(-90deg,var(--bg-primary),transparent);}
+    .ticker-inner{display:inline-flex;gap:48px;animation:ticker 25s linear infinite;}
+    .ticker-item{display:inline-flex;align-items:center;gap:8px;font-size:.82rem;color:var(--text-secondary);}
+    .ticker-item .val{color:var(--accent1);font-weight:700;font-family:'Space Mono',monospace;}
+    @keyframes ticker{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+
+    .hero-numbers{display:flex;gap:40px;justify-content:center;flex-wrap:wrap;margin-top:44px;}
+    .hero-num{text-align:center;}
+    .hero-num-val{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;background:var(--gradient-main);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .hero-num-label{font-size:.78rem;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:.8px;}
+
+    .steps-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0;position:relative;}
+    .steps-wrap::before{content:'';position:absolute;top:32px;left:12.5%;right:12.5%;height:1px;background:linear-gradient(90deg,var(--accent1),var(--accent2),var(--accent1));opacity:.3;z-index:0;}
+    .step-item{padding:28px 20px;text-align:center;position:relative;z-index:1;}
+    .step-num{width:52px;height:52px;border-radius:50%;margin:0 auto 16px;background:var(--gradient-btn);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;color:var(--bg-deep);box-shadow:0 8px 24px var(--glow1);}
+    .step-title{font-family:'Syne',sans-serif;font-size:.95rem;margin-bottom:8px;font-weight:700;}
+    .step-desc{color:var(--text-secondary);font-size:.82rem;line-height:1.6;}
+
+    .comm-table{width:100%;max-width:480px;margin:0 auto;border-collapse:separate;border-spacing:0 8px;}
+    .comm-row{background:var(--bg-card);border-radius:12px;}
+    .comm-row td{padding:14px 20px;}
+    .comm-row td:first-child{border-radius:12px 0 0 12px;}
+    .comm-row td:last-child{border-radius:0 12px 12px 0;text-align:right;}
+    .comm-pct{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;}
+
+    .cta-section{background:linear-gradient(135deg,var(--bg-secondary),var(--bg-card));border-top:1px solid var(--border-subtle);border-bottom:1px solid var(--border-subtle);padding:90px 44px;text-align:center;position:relative;overflow:hidden;}
+    .cta-section::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 50% 50%,var(--mesh1),transparent 60%);}
+    .footer{background:var(--bg-secondary);border-top:1px solid var(--border-subtle);padding:44px;text-align:center;}
+    .footer-logo{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;background:var(--gradient-main);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px;}
+    .footer-links{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin:16px 0;}
+    .footer-links a{color:var(--text-muted);font-size:.88rem;}
+    .footer-links a:hover{color:var(--accent1);}
+  </style>
+</head>
+<body>
+  <div class="vv-bg"><div class="vv-bg-mesh"></div><div class="vv-bg-grid"></div></div>
+
+  <!-- NAV -->
+  <nav class="landing-nav">
+    <div class="landing-nav-logo">⬡ VercelVirgo</div>
+    <div class="landing-nav-links">
+      <a href="login.html" class="btn btn-ghost btn-sm">Login</a>
+      <a href="register.html" class="btn btn-primary btn-sm">Join Free →</a>
+    </div>
+  </nav>
+
+  <!-- TICKER -->
+  <div class="ticker-wrap" style="margin-top:68px">
+    <div class="ticker-inner" id="ticker-inner">
+      <span class="ticker-item">💰 Coin Price <span class="val" id="t1">$0.10</span></span>
+      <span class="ticker-item">👥 Members <span class="val" id="t2">—</span></span>
+      <span class="ticker-item">🔗 Level 1 Commission <span class="val">10%</span></span>
+      <span class="ticker-item">🔗 Level 2 Commission <span class="val">5%</span></span>
+      <span class="ticker-item">🔗 Level 3+ <span class="val">2% ∞</span></span>
+      <span class="ticker-item">💵 Payment <span class="val">USDT TRC20</span></span>
+      <span class="ticker-item">⚡ Instant Approval <span class="val">24h</span></span>
+      <span class="ticker-item">💰 Coin Price <span class="val" id="t1b">$0.10</span></span>
+      <span class="ticker-item">👥 Members <span class="val" id="t2b">—</span></span>
+      <span class="ticker-item">🔗 Level 1 Commission <span class="val">10%</span></span>
+      <span class="ticker-item">🔗 Level 2 Commission <span class="val">5%</span></span>
+      <span class="ticker-item">🔗 Level 3+ <span class="val">2% ∞</span></span>
+      <span class="ticker-item">💵 Payment <span class="val">USDT TRC20</span></span>
+      <span class="ticker-item">⚡ Instant Approval <span class="val">24h</span></span>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div style="position:relative;z-index:1;max-width:820px;margin:0 auto">
+      <div class="hero-badge animate-fade">🚀 Next-Generation Coin Earning Platform</div>
+      <h1 class="hero-title animate-up">
+        Earn Coins.<br>
+        <span class="highlight">Build Your Empire.</span><br>
+        Cash Out Anytime.
+      </h1>
+      <p class="hero-sub animate-up stagger-1">
+        Join VercelVirgo — buy coins via USDT, refer others, earn unlimited MLM commissions across every level of your network. Sell back or withdraw whenever you want.
+      </p>
+      <div class="hero-cta animate-up stagger-2">
+        <a href="register.html" class="btn btn-primary btn-xl">🚀 Start Earning Free</a>
+        <a href="#how-it-works" class="btn btn-ghost btn-lg">See How It Works ↓</a>
+      </div>
+      <div class="hero-numbers animate-fade stagger-3">
+        <div class="hero-num">
+          <div class="hero-num-val" id="h-price">$0.10</div>
+          <div class="hero-num-label">Coin Price</div>
+        </div>
+        <div class="hero-num">
+          <div class="hero-num-val" id="h-members">—</div>
+          <div class="hero-num-label">Members</div>
+        </div>
+        <div class="hero-num">
+          <div class="hero-num-val">∞</div>
+          <div class="hero-num-label">MLM Levels</div>
+        </div>
+        <div class="hero-num">
+          <div class="hero-num-val">USDT</div>
+          <div class="hero-num-label">Payment</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="section" id="how-it-works" style="background:var(--bg-secondary)">
+    <div style="max-width:1000px;margin:0 auto">
+      <div class="section-center">
+        <h2 class="section-title">How It Works</h2>
+        <p class="section-sub">Four simple steps to start earning</p>
+      </div>
+      <div class="steps-wrap">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-title">Register Free</div>
+          <div class="step-desc">Create your account in seconds. Get a unique referral link instantly.</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-title">Buy Coins</div>
+          <div class="step-desc">Send USDT TRC20 to our wallet. Submit proof for admin approval.</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-title">Refer & Earn</div>
+          <div class="step-desc">Share your link. Earn coin commissions from unlimited levels below you.</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">4</div>
+          <div class="step-title">Cash Out</div>
+          <div class="step-desc">Withdraw coins as USDT to your wallet anytime, any amount.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="section">
+    <div style="max-width:1100px;margin:0 auto">
+      <div class="section-center">
+        <h2 class="section-title">Everything You Need</h2>
+        <p class="section-sub">A complete ecosystem built for serious earners</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card animate-up">
+          <span class="feature-icon">💎</span>
+          <div class="feature-title">Unlimited MLM Levels</div>
+          <div class="feature-desc">Earn from every single person in your downline — no level cap, no expiry. The deeper your network, the more passive income flows to you.</div>
+        </div>
+        <div class="feature-card animate-up stagger-1">
+          <span class="feature-icon">📊</span>
+          <div class="feature-title">Real-Time Dashboard</div>
+          <div class="feature-desc">Track your coin balance, team size, commissions, and all transactions live from a beautiful, responsive dashboard.</div>
+        </div>
+        <div class="feature-card animate-up stagger-2">
+          <span class="feature-icon">🔗</span>
+          <div class="feature-title">Smart Referral Links</div>
+          <div class="feature-desc">Your unique referral code tracks everyone who joins through you — auto-building your downline and commission chain.</div>
+        </div>
+        <div class="feature-card animate-up stagger-3">
+          <span class="feature-icon">💰</span>
+          <div class="feature-title">Buy & Sell Freely</div>
+          <div class="feature-desc">Purchase coins anytime via USDT. Sell them back to the platform whenever you want. Full liquidity at current coin price.</div>
+        </div>
+        <div class="feature-card animate-up stagger-4">
+          <span class="feature-icon">🏆</span>
+          <div class="feature-title">Leaderboard</div>
+          <div class="feature-desc">Compete globally. See your rank among top earners. Rise to the top and prove your network-building skills.</div>
+        </div>
+        <div class="feature-card animate-up stagger-5">
+          <span class="feature-icon">🛡️</span>
+          <div class="feature-title">Secure & Transparent</div>
+          <div class="feature-desc">All transactions verified by admin. Payment proofs required. Full audit trail for every coin that moves.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMMISSION -->
+  <section class="section section-center" style="background:var(--bg-secondary)">
+    <div style="max-width:600px;margin:0 auto">
+      <h2 class="section-title">Commission Structure</h2>
+      <p class="section-sub">Every level of your network pays you — forever</p>
+      <table class="comm-table">
+        <tr class="comm-row">
+          <td><span class="badge badge-accent">Level 1</span><span style="color:var(--text-secondary);font-size:.85rem;margin-left:10px">Direct Referral</span></td>
+          <td><span class="comm-pct" style="color:var(--accent1)">10%</span></td>
+        </tr>
+        <tr class="comm-row">
+          <td><span class="badge badge-blue">Level 2</span><span style="color:var(--text-secondary);font-size:.85rem;margin-left:10px">2nd Generation</span></td>
+          <td><span class="comm-pct" style="color:var(--accent2)">5%</span></td>
+        </tr>
+        <tr class="comm-row">
+          <td><span class="badge badge-success">Level 3+</span><span style="color:var(--text-secondary);font-size:.85rem;margin-left:10px">Every Level Beyond</span></td>
+          <td><span class="comm-pct" style="color:var(--success)">2% ∞</span></td>
+        </tr>
+      </table>
+      <p style="color:var(--text-muted);font-size:.82rem;margin-top:18px">Commission paid in coins when your downline member's deposit is admin-approved</p>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="cta-section">
+    <div style="position:relative;z-index:1;max-width:560px;margin:0 auto">
+      <div style="font-size:4rem;margin-bottom:20px">🚀</div>
+      <h2 class="section-title">Ready to Start?</h2>
+      <p style="color:var(--text-secondary);margin-bottom:36px;font-size:1rem">Join today. Registration is 100% free. Start earning from day one.</p>
+      <a href="register.html" class="btn btn-primary btn-xl animate-glow">Create Free Account →</a>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-logo">⬡ VercelVirgo</div>
+    <p style="color:var(--text-muted);font-size:.82rem;margin-bottom:16px">The next-generation coin earning & MLM platform</p>
+    <div class="footer-links">
+      <a href="register.html">Register</a>
+      <a href="login.html">Login</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="leaderboard.html">Leaderboard</a>
+      <a href="admin/">Admin</a>
+    </div>
+    <p style="color:var(--text-muted);font-size:.75rem">© 2024 VercelVirgo. All rights reserved.</p>
+  </footer>
+
+  <script type="module">
+    import { db } from './js/firebase-config.js';
+    import { doc, getDoc, collection, getCountFromServer } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    async function loadStats() {
+      try {
+        const [sSnap, uSnap] = await Promise.all([
+          getDoc(doc(db,'settings','platform')),
+          getCountFromServer(collection(db,'users'))
+        ]);
+        const price = sSnap.exists() ? (sSnap.data().coinPrice||0.10) : 0.10;
+        const p = '$' + Number(price).toFixed(4);
+        const m = uSnap.data().count.toLocaleString();
+        ['t1','t1b','h-price'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=p; });
+        ['t2','t2b','h-members'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=m; });
+      } catch(e) { /* use defaults */ }
+    }
+    loadStats();
+  </script>
+</body>
+</html>

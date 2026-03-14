@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Buy Coins — VercelVirgo</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script type="module">import { initTheme } from "./js/theme.js"; initTheme();</script>
+</head>
+<body>
+  <div class="vv-bg"><div class="vv-bg-mesh"></div><div class="vv-bg-grid"></div></div>
+  
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">V</div>
+        <div><div class="sidebar-logo-text">VercelVirgo</div><div class="sidebar-logo-sub">Coin Platform</div></div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-label">Main</div>
+          <a href="dashboard.html" class="nav-link"><span class="nav-icon">🏠</span> Dashboard</a>
+          <a href="buy-coins.html" class="nav-link active"><span class="nav-icon">🔼</span> Buy Coins</a>
+          <a href="sell-coins.html" class="nav-link"><span class="nav-icon">🔽</span> Sell Coins</a>
+          <a href="withdraw.html" class="nav-link"><span class="nav-icon">💸</span> Withdraw</a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-label">Network</div>
+          <a href="team.html" class="nav-link"><span class="nav-icon">👥</span> My Team</a>
+          <a href="leaderboard.html" class="nav-link"><span class="nav-icon">🏆</span> Leaderboard</a>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-avatar" id="user-avatar">?</div>
+          <div><div class="sidebar-user-name" id="user-name">Loading...</div><div class="sidebar-user-email" id="user-email">—</div></div>
+        </div>
+        <button class="btn btn-secondary btn-sm btn-full" id="logout-btn">🚪 Sign Out</button>
+      </div>
+    </aside>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div class="main-content">
+      <header class="main-header">
+        <div style="display:flex;align-items:center;gap:16px">
+          <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+          <div class="main-header-title">Buy <span>Coins</span></div>
+        </div>
+        <div class="header-actions">
+          <a href="dashboard.html" class="header-btn" title="Back">←</a>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <div class="page-header">
+          <h2>🔼 Buy Coins</h2>
+          <p>Purchase coins using USDT TRC20 and submit payment proof for approval</p>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:900px">
+
+          <!-- STEP 1: Admin wallet -->
+          <div class="card animate-up" style="grid-column:1/-1">
+            <h4 style="color:var(--gold);margin-bottom:16px">📍 Step 1: Send USDT to This Wallet</h4>
+            <div class="alert alert-warning mb-16">
+              ⚠️ Only send USDT via TRC20 network. Other networks will result in lost funds.
+            </div>
+            <div style="background:rgba(240,185,11,0.05);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+              <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.8px">Admin USDT Wallet (TRC20)</div>
+              <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                <div style="font-family:var(--font-mono);font-size:0.9rem;color:var(--text-primary);word-break:break-all;flex:1" id="admin-wallet">Loading...</div>
+                <button class="copy-btn" id="copy-wallet-btn">📋 Copy</button>
+              </div>
+            </div>
+            <p style="font-size:0.8rem;color:var(--text-muted);margin-top:10px">Current coin price: <strong style="color:var(--gold)" id="price-display">Loading...</strong></p>
+          </div>
+
+          <!-- STEP 2: Form -->
+          <div class="card animate-up" style="animation-delay:0.1s;grid-column:1/-1">
+            <h4 style="color:var(--gold);margin-bottom:20px">📝 Step 2: Submit Payment Proof</h4>
+            <form id="buy-form" novalidate>
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label" for="usd-amount">Amount Sent (USD)</label>
+                  <div class="input-group">
+                    <span class="input-icon">💵</span>
+                    <input type="number" id="usd-amount" class="form-input" placeholder="e.g. 50" min="1" step="0.01" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">You Will Receive</label>
+                  <div class="price-calc">
+                    <span class="price-calc-label">Coins</span>
+                    <span class="price-calc-value" id="coins-preview">0</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="tx-hash">USDT Transaction Hash (TX ID)</label>
+                <div class="input-group">
+                  <span class="input-icon">🔗</span>
+                  <input type="text" id="tx-hash" class="form-input" placeholder="Paste your USDT transaction hash here" />
+                </div>
+                <span class="form-hint">Find this in your wallet's transaction history after sending</span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Payment Proof Screenshot</label>
+                <div class="upload-area" id="upload-area">
+                  <div class="upload-icon">📸</div>
+                  <div class="upload-text">Click or drag to upload payment proof</div>
+                  <div class="upload-hint">PNG, JPG up to 2MB</div>
+                  <input type="file" id="proof-file" accept="image/*" style="display:none" />
+                </div>
+                <div class="upload-preview hidden" id="proof-preview">
+                  <img id="preview-img" src="" alt="Payment proof" />
+                  <button type="button" class="btn btn-danger btn-sm" id="remove-proof" style="margin-top:8px">Remove</button>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-full btn-lg" id="submit-btn">
+                🚀 Submit Buy Request
+              </button>
+            </form>
+          </div>
+
+          <!-- Info Card -->
+          <div class="card card-blue animate-up" style="animation-delay:0.2s;grid-column:1/-1">
+            <h4 style="margin-bottom:12px">ℹ️ How Buy Coins Works</h4>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+              <div style="display:flex;gap:10px"><div style="color:var(--gold);font-size:1.2rem">1️⃣</div><div><div style="font-weight:600;font-size:0.9rem">Send USDT</div><div style="font-size:0.8rem;color:var(--text-muted)">Send exact amount to admin wallet via TRC20</div></div></div>
+              <div style="display:flex;gap:10px"><div style="color:var(--gold);font-size:1.2rem">2️⃣</div><div><div style="font-weight:600;font-size:0.9rem">Submit Proof</div><div style="font-size:0.8rem;color:var(--text-muted)">Fill this form with TX hash and screenshot</div></div></div>
+              <div style="display:flex;gap:10px"><div style="color:var(--gold);font-size:1.2rem">3️⃣</div><div><div style="font-weight:600;font-size:0.9rem">Admin Approves</div><div style="font-size:0.8rem;color:var(--text-muted)">Verified within 24 hours</div></div></div>
+              <div style="display:flex;gap:10px"><div style="color:var(--gold);font-size:1.2rem">4️⃣</div><div><div style="font-weight:600;font-size:0.9rem">Coins Added</div><div style="font-size:0.8rem;color:var(--text-muted)">Coins appear in your wallet instantly on approval</div></div></div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <nav class="mobile-nav">
+    <div class="mobile-nav-inner">
+      <a href="dashboard.html" class="mobile-nav-link"><span class="icon">🏠</span>Home</a>
+      <a href="buy-coins.html" class="mobile-nav-link active"><span class="icon">🔼</span>Buy</a>
+      <a href="team.html" class="mobile-nav-link"><span class="icon">👥</span>Team</a>
+      <a href="leaderboard.html" class="mobile-nav-link"><span class="icon">🏆</span>Rank</a>
+      <a href="withdraw.html" class="mobile-nav-link"><span class="icon">💸</span>Withdraw</a>
+    </div>
+  </nav>
+
+  <script type="module">
+    import { auth, db } from './js/firebase-config.js';
+    import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import {
+      doc, getDoc, addDoc, collection, serverTimestamp
+    } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    import {
+      showToast, showSpinner, hideSpinner, initSidebar,
+      formatUSD, usdToCoins, formatCoins, fileToBase64, copyToClipboard
+    } from './js/utils.js';
+
+    let userData = null, coinPrice = 0.10;
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) { window.location.href = 'login.html'; return; }
+      initSidebar();
+      try {
+        const settingsSnap = await getDoc(doc(db, 'settings', 'platform'));
+        if (settingsSnap.exists()) {
+          const s = settingsSnap.data();
+          coinPrice = s.coinPrice || 0.10;
+          const wallet = s.usdtWalletAddress || 'Not configured yet — contact admin';
+          document.getElementById('admin-wallet').textContent = wallet;
+          document.getElementById('copy-wallet-btn').onclick = function() { copyToClipboard(wallet, this); };
+        }
+        document.getElementById('price-display').textContent = formatUSD(coinPrice) + ' per coin';
+
+        const userSnap = await getDoc(doc(db, 'users', user.uid));
+        if (userSnap.exists()) {
+          userData = userSnap.data();
+          document.getElementById('user-name').textContent  = userData.fullName || '';
+          document.getElementById('user-email').textContent = userData.email || '';
+          document.getElementById('user-avatar').textContent = (userData.fullName || '?').charAt(0).toUpperCase();
+        }
+      } catch (e) { showToast('Error loading settings', 'error'); }
+    });
+
+    // Live coins preview
+    document.getElementById('usd-amount').addEventListener('input', function() {
+      const coins = usdToCoins(this.value, coinPrice);
+      document.getElementById('coins-preview').textContent = formatCoins(coins);
+    });
+
+    // Upload area
+    const uploadArea = document.getElementById('upload-area');
+    const proofFile  = document.getElementById('proof-file');
+    uploadArea.addEventListener('click', () => proofFile.click());
+    uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault(); uploadArea.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) handleFile(file);
+    });
+    proofFile.addEventListener('change', () => { if (proofFile.files[0]) handleFile(proofFile.files[0]); });
+
+    let proofBase64 = null;
+    async function handleFile(file) {
+      if (!file.type.startsWith('image/')) { showToast('Please upload an image file', 'warning'); return; }
+      try {
+        proofBase64 = await fileToBase64(file);
+        document.getElementById('preview-img').src = proofBase64;
+        document.getElementById('proof-preview').classList.remove('hidden');
+        uploadArea.style.display = 'none';
+      } catch (e) { showToast(e.message, 'error'); }
+    }
+    document.getElementById('remove-proof').addEventListener('click', () => {
+      proofBase64 = null; proofFile.value = '';
+      document.getElementById('proof-preview').classList.add('hidden');
+      uploadArea.style.display = '';
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', async () => { await signOut(auth); window.location.href = 'login.html'; });
+
+    // Submit
+    document.getElementById('buy-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const usdAmount = parseFloat(document.getElementById('usd-amount').value);
+      const txHash    = document.getElementById('tx-hash').value.trim();
+
+      if (!usdAmount || usdAmount <= 0) { showToast('Enter a valid USD amount', 'warning'); return; }
+      if (!txHash || txHash.length < 10) { showToast('Enter your transaction hash', 'warning'); return; }
+      if (!proofBase64) { showToast('Please upload payment proof screenshot', 'warning'); return; }
+
+      const coins = usdToCoins(usdAmount, coinPrice);
+      if (coins <= 0) { showToast('Amount too small for current coin price', 'warning'); return; }
+
+      showSpinner();
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+
+      try {
+        const user = auth.currentUser;
+        await addDoc(collection(db, 'coins_transactions'), {
+          userId:       user.uid,
+          userName:     userData?.fullName || '',
+          userEmail:    userData?.email || '',
+          type:         'buy',
+          coins:        coins,
+          usdAmount:    usdAmount,
+          status:       'pending',
+          paymentProof: proofBase64,
+          txHash:       txHash,
+          createdAt:    serverTimestamp(),
+          approvedAt:   null,
+          notes:        ''
+        });
+        hideSpinner();
+        showToast('Buy request submitted! Admin will approve within 24 hours. 🎉', 'success', 'Request Submitted', 6000);
+        setTimeout(() => { window.location.href = 'dashboard.html'; }, 3000);
+      } catch (err) {
+        hideSpinner(); btn.disabled = false;
+        showToast('Failed to submit request: ' + err.message, 'error');
+      }
+    });
+  </script>
+</body>
+</html>
