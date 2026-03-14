@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings — Admin | VercelVirgo</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <div class="vv-bg"><div class="vv-bg-mesh"></div><div class="vv-bg-grid"></div></div>
+  <div class="app-layout">
+    <div id="sidebar-container"></div>
+
+    <div class="main-content">
+      <header class="main-header">
+        <div style="display:flex;align-items:center;gap:16px">
+          <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+          <div class="main-header-title">Platform <span>Settings</span></div>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <div class="page-header animate-up">
+          <h2>⚙️ Platform Settings</h2>
+          <p>Configure coin price, commissions, themes, and platform details</p>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:1000px">
+
+          <!-- LEFT COLUMN -->
+          <div style="display:flex;flex-direction:column;gap:20px">
+
+            <!-- THEME SWITCHER -->
+            <div class="card animate-up" style="border-color:var(--border)">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+                <div style="width:36px;height:36px;border-radius:10px;background:var(--gradient-btn);display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:var(--bg-deep)">🎨</div>
+                <div>
+                  <h4 style="font-family:'Syne',sans-serif">Theme Selector</h4>
+                  <p style="font-size:.78rem;color:var(--text-muted)">8 premium themes — click to apply globally</p>
+                </div>
+              </div>
+              <div class="theme-grid" id="theme-grid-main">
+                <!-- JS renders this -->
+              </div>
+              <div style="margin-top:14px;padding:10px 14px;background:rgba(255,255,255,.03);border-radius:10px;border:1px solid var(--border-subtle)">
+                <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.8px">Active Theme</div>
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div id="active-dot" class="theme-dot" style="width:20px;height:20px"></div>
+                  <span id="active-name" style="font-family:'Syne',sans-serif;font-weight:700;color:var(--accent1);font-size:.9rem">—</span>
+                  <span id="active-emoji" style="font-size:1rem"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- COIN PRICE -->
+            <div class="card animate-up stagger-1">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+                <div style="width:36px;height:36px;border-radius:10px;background:rgba(240,185,11,.12);display:flex;align-items:center;justify-content:center;font-size:1.2rem">🪙</div>
+                <h4 style="font-family:'Syne',sans-serif">Coin Pricing</h4>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="coin-price">Price Per Coin (USD)</label>
+                <div class="input-group">
+                  <span class="input-icon">💵</span>
+                  <input type="number" id="coin-price" class="form-input" placeholder="e.g. 0.10" min="0.0001" step="0.0001" />
+                </div>
+              </div>
+              <div id="price-preview" style="background:var(--shadow-color);border:1px solid var(--border);border-radius:12px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+                <div style="font-size:.78rem;color:var(--text-muted)">1000 coins =</div>
+                <div style="font-family:'Syne',sans-serif;font-size:1.3rem;color:var(--accent1);font-weight:800" id="price-1000">$100.00</div>
+              </div>
+            </div>
+
+            <!-- COMMISSION -->
+            <div class="card animate-up stagger-2">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+                <div style="width:36px;height:36px;border-radius:10px;background:rgba(0,229,160,.1);display:flex;align-items:center;justify-content:center;font-size:1.2rem">💎</div>
+                <h4 style="font-family:'Syne',sans-serif">Commission Rates (%)</h4>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="comm-level1">Level 1 — Direct Referral</label>
+                <div class="input-group">
+                  <span class="input-icon">🥇</span>
+                  <input type="number" id="comm-level1" class="form-input" placeholder="10" min="0" max="100" step="0.1" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="comm-level2">Level 2</label>
+                <div class="input-group">
+                  <span class="input-icon">🥈</span>
+                  <input type="number" id="comm-level2" class="form-input" placeholder="5" min="0" max="100" step="0.1" />
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom:0">
+                <label class="form-label" for="comm-rest">Level 3+ (all deeper levels)</label>
+                <div class="input-group">
+                  <span class="input-icon">🥉</span>
+                  <input type="number" id="comm-rest" class="form-input" placeholder="2" min="0" max="100" step="0.1" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN -->
+          <div style="display:flex;flex-direction:column;gap:20px">
+
+            <!-- USDT WALLET -->
+            <div class="card animate-up stagger-1">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+                <div style="width:36px;height:36px;border-radius:10px;background:rgba(0,212,255,.1);display:flex;align-items:center;justify-content:center;font-size:1.2rem">💳</div>
+                <div>
+                  <h4 style="font-family:'Syne',sans-serif">Admin USDT Wallet</h4>
+                  <p style="font-size:.78rem;color:var(--text-muted)">TRC20 — Users send payments here</p>
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom:0">
+                <label class="form-label" for="usdt-wallet">USDT TRC20 Address</label>
+                <input type="text" id="usdt-wallet" class="form-input" placeholder="Txxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" style="font-family:'Space Mono',monospace;font-size:.82rem" />
+              </div>
+            </div>
+
+            <!-- LIMITS -->
+            <div class="card animate-up stagger-2">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+                <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,170,0,.1);display:flex;align-items:center;justify-content:center;font-size:1.2rem">🔒</div>
+                <h4 style="font-family:'Syne',sans-serif">Platform Limits</h4>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="min-withdrawal">Min Withdrawal (USD)</label>
+                <div class="input-group">
+                  <span class="input-icon">💸</span>
+                  <input type="number" id="min-withdrawal" class="form-input" placeholder="10" min="1" step="1" />
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom:0">
+                <label class="form-label" for="min-sell">Min Sell Coins</label>
+                <div class="input-group">
+                  <span class="input-icon">🔽</span>
+                  <input type="number" id="min-sell" class="form-input" placeholder="100" min="1" step="1" />
+                </div>
+              </div>
+            </div>
+
+            <!-- PREVIEW CARD -->
+            <div class="card animate-up stagger-3" style="background:linear-gradient(135deg,var(--bg-card),var(--bg-card-hover));border-color:var(--border)">
+              <h4 style="margin-bottom:16px;font-family:'Syne',sans-serif;color:var(--accent1)">📊 Commission Preview</h4>
+              <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:14px">For 1000 coins bought:</p>
+              <div style="display:flex;flex-direction:column;gap:8px" id="commission-preview">
+                <div style="display:flex;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:8px">
+                  <span style="font-size:.82rem;color:var(--text-muted)">🥇 Level 1 gets</span>
+                  <span style="font-family:'Syne',sans-serif;color:var(--accent1);font-weight:700" id="prev-l1">100 coins</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:8px">
+                  <span style="font-size:.82rem;color:var(--text-muted)">🥈 Level 2 gets</span>
+                  <span style="font-family:'Syne',sans-serif;color:var(--accent2);font-weight:700" id="prev-l2">50 coins</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:8px">
+                  <span style="font-size:.82rem;color:var(--text-muted)">🥉 Level 3+ each</span>
+                  <span style="font-family:'Syne',sans-serif;color:var(--success);font-weight:700" id="prev-l3">20 coins</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- SAVE BUTTON -->
+            <button class="btn btn-primary btn-full btn-lg animate-up stagger-4" id="save-btn" style="font-size:1rem">
+              💾 Save All Settings
+            </button>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { auth, db } from '../js/firebase-config.js';
+    import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    import { showToast, showSpinner, hideSpinner, initSidebar, formatUSD } from '../js/utils.js';
+    import { getAdminSidebar } from '../js/admin-sidebar.js';
+    import { THEMES, applyTheme, getCurrentTheme } from '../js/theme.js';
+
+    document.getElementById('sidebar-container').innerHTML = getAdminSidebar('settings');
+
+    // ── Build theme grid
+    function buildThemeGrid() {
+      const current = getCurrentTheme();
+      const grid = document.getElementById('theme-grid-main');
+      grid.innerHTML = THEMES.map(t => `
+        <div class="theme-option ${t.id === current ? 'active' : ''}"
+             onclick="handleThemeClick('${t.id}')"
+             title="${t.name}">
+          <div class="theme-dot theme-dot-${t.id}"></div>
+          <div class="theme-name">${t.name.split(' ')[0]}</div>
+          <div class="theme-check">✓</div>
+        </div>
+      `).join('');
+      updateActiveDisplay(current);
+    }
+
+    function updateActiveDisplay(themeId) {
+      const t = THEMES.find(x => x.id === themeId);
+      if (!t) return;
+      const dot = document.getElementById('active-dot');
+      if (dot) {
+        dot.className = `theme-dot theme-dot-${themeId}`;
+        dot.style.width = '20px'; dot.style.height = '20px';
+      }
+      const name = document.getElementById('active-name');
+      if (name) name.textContent = t.name;
+      const em = document.getElementById('active-emoji');
+      if (em) em.textContent = t.emoji;
+    }
+
+    window.handleThemeClick = function(themeId) {
+      applyTheme(themeId);
+      document.querySelectorAll('.theme-option').forEach(el => {
+        el.classList.toggle('active', el.getAttribute('onclick')?.includes(themeId));
+      });
+      updateActiveDisplay(themeId);
+      showToast(`Theme: ${THEMES.find(t=>t.id===themeId)?.name} applied! ✨`, 'success');
+    };
+
+    // Live previews
+    document.getElementById('coin-price').addEventListener('input', function() {
+      const price = parseFloat(this.value) || 0;
+      document.getElementById('price-1000').textContent = formatUSD(price * 1000);
+      updateCommPreview();
+    });
+    ['comm-level1','comm-level2','comm-rest'].forEach(id => {
+      document.getElementById(id).addEventListener('input', updateCommPreview);
+    });
+
+    function updateCommPreview() {
+      const l1 = parseFloat(document.getElementById('comm-level1').value) || 0;
+      const l2 = parseFloat(document.getElementById('comm-level2').value) || 0;
+      const lr = parseFloat(document.getElementById('comm-rest').value) || 0;
+      document.getElementById('prev-l1').textContent = Math.floor(1000 * l1 / 100) + ' coins';
+      document.getElementById('prev-l2').textContent = Math.floor(1000 * l2 / 100) + ' coins';
+      document.getElementById('prev-l3').textContent = Math.floor(1000 * lr / 100) + ' coins';
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) { window.location.href = 'index.html'; return; }
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      if (!snap.exists() || snap.data().role !== 'admin') {
+        await signOut(auth); window.location.href = 'index.html'; return;
+      }
+      const ud = snap.data();
+      document.getElementById('admin-name').textContent   = ud.fullName || 'Admin';
+      document.getElementById('admin-email').textContent  = ud.email || '';
+      document.getElementById('admin-avatar').textContent = (ud.fullName||'A').charAt(0).toUpperCase();
+      initSidebar();
+      document.getElementById('admin-logout-btn').addEventListener('click', async () => { await signOut(auth); window.location.href = 'index.html'; });
+      await loadSettings();
+      buildThemeGrid();
+    });
+
+    async function loadSettings() {
+      try {
+        const snap = await getDoc(doc(db, 'settings', 'platform'));
+        const s = snap.exists() ? snap.data() : {};
+        document.getElementById('coin-price').value    = s.coinPrice           ?? 0.10;
+        document.getElementById('comm-level1').value   = s.commissionLevel1    ?? 10;
+        document.getElementById('comm-level2').value   = s.commissionLevel2    ?? 5;
+        document.getElementById('comm-rest').value     = s.commissionLevelRest ?? 2;
+        document.getElementById('usdt-wallet').value   = s.usdtWalletAddress   ?? '';
+        document.getElementById('min-withdrawal').value= s.minWithdrawal       ?? 10;
+        document.getElementById('min-sell').value      = s.minSellCoins        ?? 100;
+        document.getElementById('price-1000').textContent = formatUSD((s.coinPrice||0.10) * 1000);
+        updateCommPreview();
+      } catch (err) { showToast('Error loading settings: ' + err.message, 'error'); }
+    }
+
+    document.getElementById('save-btn').addEventListener('click', async () => {
+      const coinPrice           = parseFloat(document.getElementById('coin-price').value);
+      const commissionLevel1    = parseFloat(document.getElementById('comm-level1').value);
+      const commissionLevel2    = parseFloat(document.getElementById('comm-level2').value);
+      const commissionLevelRest = parseFloat(document.getElementById('comm-rest').value);
+      const usdtWalletAddress   = document.getElementById('usdt-wallet').value.trim();
+      const minWithdrawal       = parseFloat(document.getElementById('min-withdrawal').value);
+      const minSellCoins        = parseFloat(document.getElementById('min-sell').value);
+
+      if (isNaN(coinPrice) || coinPrice <= 0)  { showToast('Enter valid coin price', 'warning'); return; }
+      if (!usdtWalletAddress || usdtWalletAddress.length < 25) { showToast('Enter valid USDT wallet address', 'warning'); return; }
+
+      showSpinner();
+      const btn = document.getElementById('save-btn'); btn.disabled = true;
+      try {
+        await setDoc(doc(db, 'settings', 'platform'), {
+          coinPrice, commissionLevel1, commissionLevel2, commissionLevelRest,
+          usdtWalletAddress, minWithdrawal, minSellCoins
+        });
+        hideSpinner(); btn.disabled = false;
+        showToast('Settings saved successfully! ✅', 'success');
+      } catch (err) {
+        hideSpinner(); btn.disabled = false;
+        showToast('Error: ' + err.message, 'error');
+      }
+    });
+  </script>
+
+  <style>
+    @media(max-width:768px){
+      [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important;}
+    }
+    .theme-grid{grid-template-columns:repeat(4,1fr);gap:8px;}
+  </style>
+</body>
+</html>
