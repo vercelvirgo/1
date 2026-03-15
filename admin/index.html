@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login — VercelVirgo</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <script type="module">import { initTheme } from "../js/theme.js"; initTheme();</script>
+</head>
+<body>
+  <div class="vv-bg"><div class="vv-bg-mesh"></div><div class="vv-bg-grid"></div></div>
+  
+  
+
+  <div class="auth-page">
+    <div class="auth-card animate-up">
+      <div class="auth-logo">🛡️ Admin Panel</div>
+      <h2 class="auth-title">Administrator Login</h2>
+      <p class="auth-sub">Access restricted to authorized admins only</p>
+
+      <div class="alert alert-warning mb-16">
+        ⚠️ This area is for platform administrators only.
+      </div>
+
+      <form id="admin-login-form" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="email">Admin Email</label>
+          <div class="input-group">
+            <span class="input-icon">✉️</span>
+            <input type="email" id="email" class="form-input" placeholder="admin@example.com" autocomplete="email" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <div class="input-group">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="password" class="form-input" placeholder="Admin password" autocomplete="current-password" />
+            <button type="button" class="input-action" id="toggle-pass">Show</button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full btn-lg" id="submit-btn">
+          🛡️ Admin Sign In
+        </button>
+      </form>
+
+      <div class="auth-footer" style="margin-top:20px">
+        <a href="../login.html" style="color:var(--text-muted);font-size:0.85rem">← Back to User Login</a>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { auth, db } from '../js/firebase-config.js';
+    import {
+      signInWithEmailAndPassword, onAuthStateChanged, signOut
+    } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    import {
+      showToast, showSpinner, hideSpinner,
+      validateEmail, showFieldError, clearAllErrors
+    } from '../js/utils.js';
+
+    // If already logged in as admin, redirect
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) return;
+      try {
+        const snap = await getDoc(doc(db, 'users', user.uid));
+        if (snap.exists() && snap.data().role === 'admin') {
+          window.location.href = 'dashboard.html';
+        }
+      } catch (e) { /* ignore */ }
+    });
+
+    document.getElementById('toggle-pass').addEventListener('click', function() {
+      const inp = document.getElementById('password');
+      const isPass = inp.type === 'password';
+      inp.type = isPass ? 'text' : 'password';
+      this.textContent = isPass ? 'Hide' : 'Show';
+    });
+
+    document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAllErrors(e.target);
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      if (!validateEmail(email)) { showFieldError('email', 'Enter a valid email'); return; }
+      if (!password) { showFieldError('password', 'Password required'); return; }
+
+      showSpinner();
+      const btn = document.getElementById('submit-btn'); btn.disabled = true;
+
+      try {
+        const cred = await signInWithEmailAndPassword(auth, email, password);
+        const snap = await getDoc(doc(db, 'users', cred.user.uid));
+
+        if (!snap.exists() || snap.data().role !== 'admin') {
+          await signOut(auth);
+          hideSpinner(); btn.disabled = false;
+          showToast('Access denied. You are not an administrator.', 'error');
+          return;
+        }
+
+        hideSpinner();
+        showToast('Welcome, Admin! 🛡️', 'success');
+        setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
+
+      } catch (err) {
+        hideSpinner(); btn.disabled = false;
+        let msg = 'Login failed. Try again.';
+        if (err.code === 'auth/user-not-found')    msg = 'Admin account not found.';
+        if (err.code === 'auth/wrong-password')     msg = 'Incorrect password.';
+        if (err.code === 'auth/invalid-credential') msg = 'Invalid credentials.';
+        if (err.code === 'auth/too-many-requests')  msg = 'Too many attempts. Try later.';
+        showToast(msg, 'error');
+      }
+    });
+  </script>
+</body>
+</html>

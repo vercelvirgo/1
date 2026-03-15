@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deposits — Admin | VercelVirgo</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <script type="module">import { initTheme } from "../js/theme.js"; initTheme();</script>
+</head>
+<body>
+  <div class="vv-bg"><div class="vv-bg-mesh"></div><div class="vv-bg-grid"></div></div>
+  
+  <div class="app-layout">
+    <div id="sidebar-container"></div>
+
+    <div class="main-content">
+      <header class="main-header">
+        <div style="display:flex;align-items:center;gap:16px">
+          <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+          <div class="main-header-title">Deposit <span>Approvals</span></div>
+        </div>
+        <div class="header-actions">
+          <span id="pending-count-badge" class="badge badge-warning">0 pending</span>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <div class="page-header">
+          <h2>🔼 Deposit Requests</h2>
+          <p>Review and approve user coin purchase requests</p>
+        </div>
+
+        <div class="alert alert-info mb-24">
+          ℹ️ When you <strong>Approve</strong> a deposit, coins are added to the user's wallet AND MLM commissions are automatically distributed to all upline members.
+        </div>
+
+        <!-- Filter -->
+        <div class="filter-bar">
+          <select id="status-filter" class="form-select" style="width:auto;min-width:150px">
+            <option value="pending">⏳ Pending</option>
+            <option value="approved">✅ Approved</option>
+            <option value="rejected">❌ Rejected</option>
+            <option value="">📋 All</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" id="refresh-btn">🔄 Refresh</button>
+        </div>
+
+        <div class="card animate-up">
+          <div class="table-wrap">
+            <table class="table table-responsive">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>USD Amount</th>
+                  <th>Coins</th>
+                  <th>TX Hash</th>
+                  <th>Proof</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="deposits-tbody">
+                <tr><td colspan="8" style="text-align:center;padding:32px"><div class="spinner" style="margin:0 auto"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Image Preview Modal -->
+  <div id="image-modal" class="modal-backdrop hidden">
+    <div class="modal" style="max-width:600px">
+      <div class="modal-header">
+        <span class="modal-title">📸 Payment Proof</span>
+        <button class="modal-close" id="close-image-modal">✕</button>
+      </div>
+      <img id="modal-proof-img" src="" alt="Payment proof" style="width:100%;border-radius:var(--radius);max-height:500px;object-fit:contain" />
+    </div>
+  </div>
+
+  <!-- Reject Modal -->
+  <div id="reject-modal" class="modal-backdrop hidden">
+    <div class="modal" style="max-width:420px">
+      <div class="modal-header">
+        <span class="modal-title">❌ Reject Deposit</span>
+        <button class="modal-close" id="close-reject-modal">✕</button>
+      </div>
+      <p style="color:var(--text-secondary);margin-bottom:16px;font-size:0.9rem">Provide a reason for rejection (will be shown to the user).</p>
+      <div class="form-group">
+        <label class="form-label" for="reject-reason">Rejection Reason</label>
+        <textarea id="reject-reason" class="form-textarea" placeholder="e.g. Invalid transaction hash, payment not received..."></textarea>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-secondary btn-full" id="cancel-reject">Cancel</button>
+        <button class="btn btn-danger btn-full" id="confirm-reject">❌ Reject</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { auth, db } from '../js/firebase-config.js';
+    import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import {
+      doc, getDoc, getDocs, collection, query,
+      where, orderBy
+    } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    import {
+      showToast, showSpinner, hideSpinner, initSidebar,
+      formatCoins, formatUSD, formatDateTime, statusBadge, truncateAddress, showConfirm
+    } from '../js/utils.js';
+    import { getAdminSidebar } from '../js/admin-sidebar.js';
+    import { approveBuyTransaction, rejectTransaction } from '../js/coins.js';
+    import { loadSettings } from '../js/dashboard.js';
+
+    document.getElementById('sidebar-container').innerHTML = getAdminSidebar('deposits');
+
+    let platformSettings = null;
+    let rejectTargetId   = null;
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) { window.location.href = 'index.html'; return; }
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      if (!snap.exists() || snap.data().role !== 'admin') {
+        await signOut(auth); window.location.href = 'index.html'; return;
+      }
+      const ud = snap.data();
+      document.getElementById('admin-name').textContent   = ud.fullName || 'Admin';
+      document.getElementById('admin-email').textContent  = ud.email || '';
+      document.getElementById('admin-avatar').textContent = (ud.fullName||'A').charAt(0).toUpperCase();
+      initSidebar();
+      document.getElementById('admin-logout-btn').addEventListener('click', async () => { await signOut(auth); window.location.href = 'index.html'; });
+
+      platformSettings = await loadSettings();
+      await loadDeposits();
+    });
+
+    async function loadDeposits() {
+      const status = document.getElementById('status-filter').value;
+      const tbody  = document.getElementById('deposits-tbody');
+      try {
+        let q;
+        if (status) {
+          q = query(collection(db, 'coins_transactions'),
+            where('type','==','buy'), where('status','==',status),
+            orderBy('createdAt','desc'));
+        } else {
+          q = query(collection(db, 'coins_transactions'),
+            where('type','==','buy'), orderBy('createdAt','desc'));
+        }
+        const snap = await getDocs(q);
+        const pending = snap.docs.filter(d => d.data().status === 'pending').length;
+        document.getElementById('pending-count-badge').textContent = pending + ' pending';
+
+        if (snap.empty) {
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:32px">No deposit requests found</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = snap.docs.map(d => {
+          const t  = d.data();
+          const id = d.id;
+          const isPending = t.status === 'pending';
+          return `<tr>
+            <td data-label="User">
+              <div style="font-weight:600">${t.userName||'—'}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted)">${t.userEmail||''}</div>
+            </td>
+            <td data-label="USD" style="color:var(--success);font-weight:700">${formatUSD(t.usdAmount)}</td>
+            <td data-label="Coins" style="font-family:var(--font-display);color:var(--gold)">${formatCoins(t.coins)}</td>
+            <td data-label="TX Hash">
+              <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted)" title="${t.txHash||''}">${truncateAddress(t.txHash||'—',8,6)}</span>
+            </td>
+            <td data-label="Proof">
+              ${t.paymentProof ? `<button class="btn btn-secondary btn-sm" onclick="viewProof('${id}')">📸 View</button>` : '<span style="color:var(--text-muted)">None</span>'}
+            </td>
+            <td data-label="Date" style="font-size:0.8rem;color:var(--text-muted)">${formatDateTime(t.createdAt)}</td>
+            <td data-label="Status">${statusBadge(t.status)}</td>
+            <td data-label="Actions">
+              ${isPending ? `
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <button class="btn btn-success btn-sm" onclick="approveDeposit('${id}')">✅ Approve</button>
+                  <button class="btn btn-danger btn-sm"  onclick="openRejectModal('${id}')">❌ Reject</button>
+                </div>` : `<span style="color:var(--text-muted);font-size:0.85rem">${t.notes||'—'}</span>`}
+            </td>
+          </tr>`;
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="8" style="color:var(--error);text-align:center;padding:20px">Error: ${err.message}</td></tr>`;
+      }
+    }
+
+    // Store proof data indexed by tx id
+    const proofCache = {};
+    window.viewProof = async (id) => {
+      if (!proofCache[id]) {
+        const snap = await getDoc(doc(db, 'coins_transactions', id));
+        if (snap.exists()) proofCache[id] = snap.data().paymentProof;
+      }
+      if (proofCache[id]) {
+        document.getElementById('modal-proof-img').src = proofCache[id];
+        document.getElementById('image-modal').classList.remove('hidden');
+      }
+    };
+    document.getElementById('close-image-modal').addEventListener('click', () =>
+      document.getElementById('image-modal').classList.add('hidden')
+    );
+    document.getElementById('image-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'image-modal') document.getElementById('image-modal').classList.add('hidden');
+    });
+
+    window.approveDeposit = (id) => {
+      showConfirm('Approve this deposit? Coins will be added and MLM commissions distributed.', async () => {
+        showSpinner();
+        try {
+          await approveBuyTransaction(id, platformSettings);
+          hideSpinner();
+          showToast('Deposit approved! Coins added and commissions distributed. ✅', 'success');
+          await loadDeposits();
+        } catch (err) {
+          hideSpinner();
+          showToast('Error: ' + err.message, 'error');
+        }
+      });
+    };
+
+    window.openRejectModal = (id) => {
+      rejectTargetId = id;
+      document.getElementById('reject-reason').value = '';
+      document.getElementById('reject-modal').classList.remove('hidden');
+    };
+    document.getElementById('close-reject-modal').addEventListener('click', () =>
+      document.getElementById('reject-modal').classList.add('hidden')
+    );
+    document.getElementById('cancel-reject').addEventListener('click', () =>
+      document.getElementById('reject-modal').classList.add('hidden')
+    );
+    document.getElementById('confirm-reject').addEventListener('click', async () => {
+      const reason = document.getElementById('reject-reason').value.trim() || 'Rejected by admin';
+      showSpinner();
+      try {
+        await rejectTransaction(rejectTargetId, reason);
+        hideSpinner();
+        document.getElementById('reject-modal').classList.add('hidden');
+        showToast('Deposit rejected', 'warning');
+        await loadDeposits();
+      } catch (err) {
+        hideSpinner();
+        showToast('Error: ' + err.message, 'error');
+      }
+    });
+
+    document.getElementById('status-filter').addEventListener('change', loadDeposits);
+    document.getElementById('refresh-btn').addEventListener('click', loadDeposits);
+  </script>
+</body>
+</html>

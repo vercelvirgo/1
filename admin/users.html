@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Users — Admin | VercelVirgo</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <script type="module">import { initTheme } from "../js/theme.js"; initTheme();</script>
+</head>
+<body>
+  <div class="vv-bg"><div class="vv-bg-mesh"></div><div class="vv-bg-grid"></div></div>
+  
+  <div class="app-layout">
+    <div id="sidebar-container"></div>
+
+    <div class="main-content">
+      <header class="main-header">
+        <div style="display:flex;align-items:center;gap:16px">
+          <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+          <div class="main-header-title">Users <span>Management</span></div>
+        </div>
+        <div class="header-actions">
+          <span id="total-users-badge" class="badge badge-blue">— users</span>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <div class="page-header">
+          <h2>👥 All Users</h2>
+          <p>Manage platform members, adjust balances, and control access</p>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+          <div class="input-group search-input">
+            <span class="input-icon">🔍</span>
+            <input type="text" id="search-input" class="form-input" placeholder="Search by name or email..." />
+          </div>
+          <select id="status-filter" class="form-select" style="width:auto;min-width:140px">
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="suspended">Suspended</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" id="refresh-btn">🔄 Refresh</button>
+        </div>
+
+        <!-- Table -->
+        <div class="card animate-up">
+          <div class="table-wrap">
+            <table class="table table-responsive">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Ref Code</th>
+                  <th>Balance</th>
+                  <th>Team</th>
+                  <th>Joined</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="users-tbody">
+                <tr><td colspan="8" style="text-align:center;padding:32px"><div class="spinner" style="margin:0 auto"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination" id="pagination"></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Adjust Balance Modal -->
+  <div id="balance-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">💰 Adjust Coin Balance</span>
+        <button class="modal-close" id="close-balance-modal">✕</button>
+      </div>
+      <p style="color:var(--text-secondary);margin-bottom:16px;font-size:0.9rem">
+        User: <strong id="modal-user-name">—</strong><br>
+        Current Balance: <strong id="modal-current-balance" style="color:var(--gold)">—</strong>
+      </p>
+      <div class="form-group">
+        <label class="form-label">Adjustment Type</label>
+        <select id="adj-type" class="form-select">
+          <option value="add">➕ Add Coins</option>
+          <option value="subtract">➖ Subtract Coins</option>
+          <option value="set">🔧 Set Exact Balance</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="adj-amount">Coin Amount</label>
+        <input type="number" id="adj-amount" class="form-input" placeholder="Enter coin amount" min="1" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="adj-reason">Reason (optional)</label>
+        <input type="text" id="adj-reason" class="form-input" placeholder="Reason for adjustment" />
+      </div>
+      <button class="btn btn-primary btn-full" id="confirm-adjustment">✅ Apply Adjustment</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { auth, db } from '../js/firebase-config.js';
+    import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import {
+      doc, getDoc, getDocs, updateDoc, collection,
+      query, orderBy, where, limit, startAfter, getCountFromServer, increment
+    } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    import {
+      showToast, showSpinner, hideSpinner, initSidebar,
+      formatCoins, formatDate, statusBadge, debounce, showConfirm
+    } from '../js/utils.js';
+    import { getAdminSidebar } from '../js/admin-sidebar.js';
+
+    document.getElementById('sidebar-container').innerHTML = getAdminSidebar('users');
+
+    const PAGE_SIZE = 20;
+    let allUsers = [], filteredUsers = [], currentPage = 1;
+    let selectedUid = null, selectedBalance = 0;
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) { window.location.href = 'index.html'; return; }
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      if (!snap.exists() || snap.data().role !== 'admin') {
+        await signOut(auth); window.location.href = 'index.html'; return;
+      }
+      const ud = snap.data();
+      document.getElementById('admin-name').textContent   = ud.fullName || 'Admin';
+      document.getElementById('admin-email').textContent  = ud.email || '';
+      document.getElementById('admin-avatar').textContent = (ud.fullName||'A').charAt(0).toUpperCase();
+      initSidebar();
+      document.getElementById('admin-logout-btn').addEventListener('click', async () => { await signOut(auth); window.location.href = 'index.html'; });
+      await loadUsers();
+    });
+
+    async function loadUsers() {
+      try {
+        const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
+        const snap = await getDocs(q);
+        allUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        document.getElementById('total-users-badge').textContent = allUsers.length + ' users';
+        applyFilters();
+      } catch (err) {
+        showToast('Error loading users: ' + err.message, 'error');
+      }
+    }
+
+    function applyFilters() {
+      const search = document.getElementById('search-input').value.toLowerCase().trim();
+      const status = document.getElementById('status-filter').value;
+      filteredUsers = allUsers.filter(u => {
+        const matchSearch = !search ||
+          (u.fullName||'').toLowerCase().includes(search) ||
+          (u.email||'').toLowerCase().includes(search) ||
+          (u.referralCode||'').toLowerCase().includes(search);
+        const matchStatus = !status || u.status === status;
+        return matchSearch && matchStatus;
+      });
+      currentPage = 1;
+      renderTable();
+      renderPagination();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('users-tbody');
+      const start = (currentPage - 1) * PAGE_SIZE;
+      const page  = filteredUsers.slice(start, start + PAGE_SIZE);
+
+      if (page.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:32px">No users found</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = page.map(u => {
+        const isSuspended = u.status === 'suspended';
+        return `<tr>
+          <td data-label="Name"><strong>${u.fullName || '—'}</strong></td>
+          <td data-label="Email" style="font-size:0.85rem;color:var(--text-muted)">${u.email || '—'}</td>
+          <td data-label="Ref Code"><code style="background:rgba(240,185,11,0.1);padding:2px 6px;border-radius:4px;font-size:0.8rem;color:var(--gold)">${u.referralCode || '—'}</code></td>
+          <td data-label="Balance" style="font-family:var(--font-display);color:var(--gold)">${formatCoins(u.coinBalance||0)}</td>
+          <td data-label="Team" style="color:var(--text-muted)">${(u.referralChain||[]).length > 0 ? '—' : '—'}</td>
+          <td data-label="Joined" style="color:var(--text-muted);font-size:0.8rem">${formatDate(u.createdAt)}</td>
+          <td data-label="Status">${statusBadge(u.status||'active')}</td>
+          <td data-label="Actions">
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button class="btn btn-primary btn-sm" onclick="openBalanceModal('${u.uid}','${(u.fullName||'').replace(/'/g,"\\'")}',${u.coinBalance||0})">💰 Balance</button>
+              <button class="btn ${isSuspended ? 'btn-success' : 'btn-danger'} btn-sm" onclick="toggleUserStatus('${u.uid}','${u.status||'active'}')">
+                ${isSuspended ? '✅ Activate' : '🚫 Suspend'}
+              </button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function renderPagination() {
+      const total = Math.ceil(filteredUsers.length / PAGE_SIZE);
+      const pg = document.getElementById('pagination');
+      if (total <= 1) { pg.innerHTML = ''; return; }
+      let html = `<button class="page-btn" ${currentPage===1?'disabled':''} onclick="changePage(${currentPage-1})">←</button>`;
+      for (let i = 1; i <= total; i++) {
+        if (i === 1 || i === total || Math.abs(i - currentPage) <= 2)
+          html += `<button class="page-btn ${i===currentPage?'active':''}" onclick="changePage(${i})">${i}</button>`;
+        else if (Math.abs(i - currentPage) === 3)
+          html += `<span style="color:var(--text-muted);padding:0 4px">…</span>`;
+      }
+      html += `<button class="page-btn" ${currentPage===total?'disabled':''} onclick="changePage(${currentPage+1})">→</button>`;
+      pg.innerHTML = html;
+    }
+
+    window.changePage = (p) => { currentPage = p; renderTable(); renderPagination(); };
+
+    window.openBalanceModal = (uid, name, balance) => {
+      selectedUid     = uid;
+      selectedBalance = balance;
+      document.getElementById('modal-user-name').textContent     = name;
+      document.getElementById('modal-current-balance').textContent = formatCoins(balance) + ' coins';
+      document.getElementById('adj-amount').value  = '';
+      document.getElementById('adj-reason').value  = '';
+      document.getElementById('balance-modal').classList.remove('hidden');
+    };
+
+    document.getElementById('close-balance-modal').addEventListener('click', () =>
+      document.getElementById('balance-modal').classList.add('hidden')
+    );
+    document.getElementById('balance-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'balance-modal') document.getElementById('balance-modal').classList.add('hidden');
+    });
+
+    document.getElementById('confirm-adjustment').addEventListener('click', async () => {
+      const type   = document.getElementById('adj-type').value;
+      const amount = parseInt(document.getElementById('adj-amount').value);
+      if (!amount || amount <= 0) { showToast('Enter a valid coin amount', 'warning'); return; }
+
+      showSpinner();
+      try {
+        let newBalance = selectedBalance;
+        if (type === 'add')      newBalance = selectedBalance + amount;
+        if (type === 'subtract') newBalance = Math.max(0, selectedBalance - amount);
+        if (type === 'set')      newBalance = amount;
+
+        await updateDoc(doc(db, 'users', selectedUid), { coinBalance: newBalance });
+        hideSpinner();
+        document.getElementById('balance-modal').classList.add('hidden');
+        showToast('Balance adjusted successfully', 'success');
+        await loadUsers();
+      } catch (err) {
+        hideSpinner();
+        showToast('Error: ' + err.message, 'error');
+      }
+    });
+
+    window.toggleUserStatus = (uid, currentStatus) => {
+      const newStatus = currentStatus === 'suspended' ? 'active' : 'suspended';
+      const action    = newStatus === 'suspended' ? 'suspend' : 'activate';
+      showConfirm(`Are you sure you want to ${action} this user?`, async () => {
+        showSpinner();
+        try {
+          await updateDoc(doc(db, 'users', uid), { status: newStatus });
+          hideSpinner();
+          showToast(`User ${action}d successfully`, 'success');
+          await loadUsers();
+        } catch (err) {
+          hideSpinner();
+          showToast('Error: ' + err.message, 'error');
+        }
+      });
+    };
+
+    const debouncedFilter = debounce(applyFilters, 300);
+    document.getElementById('search-input').addEventListener('input', debouncedFilter);
+    document.getElementById('status-filter').addEventListener('change', applyFilters);
+    document.getElementById('refresh-btn').addEventListener('click', loadUsers);
+  </script>
+</body>
+</html>

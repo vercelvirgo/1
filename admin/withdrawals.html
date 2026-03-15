@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Withdrawals — Admin | VercelVirgo</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <script type="module">import { initTheme } from "../js/theme.js"; initTheme();</script>
+</head>
+<body>
+  <div class="vv-bg"><div class="vv-bg-mesh"></div><div class="vv-bg-grid"></div></div>
+  
+  <div class="app-layout">
+    <div id="sidebar-container"></div>
+
+    <div class="main-content">
+      <header class="main-header">
+        <div style="display:flex;align-items:center;gap:16px">
+          <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+          <div class="main-header-title">Withdrawal <span>Approvals</span></div>
+        </div>
+        <div class="header-actions">
+          <span id="pending-badge" class="badge badge-warning">0 pending</span>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <div class="page-header">
+          <h2>💸 Withdrawal Requests</h2>
+          <p>Review and process user withdrawal requests</p>
+        </div>
+
+        <div class="alert alert-warning mb-24">
+          ⚠️ Approving a withdrawal will deduct coins from the user's balance. Make sure you have sent the USDT payment before approving.
+        </div>
+
+        <div class="filter-bar">
+          <select id="status-filter" class="form-select" style="width:auto;min-width:150px">
+            <option value="pending">⏳ Pending</option>
+            <option value="paid">✅ Paid</option>
+            <option value="rejected">❌ Rejected</option>
+            <option value="">📋 All</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" id="refresh-btn">🔄 Refresh</button>
+        </div>
+
+        <div class="card animate-up">
+          <div class="table-wrap">
+            <table class="table table-responsive">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Coins</th>
+                  <th>USD Value</th>
+                  <th>USDT Address</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="withdrawals-tbody">
+                <tr><td colspan="7" style="text-align:center;padding:32px"><div class="spinner" style="margin:0 auto"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Reject Modal -->
+  <div id="reject-modal" class="modal-backdrop hidden">
+    <div class="modal" style="max-width:420px">
+      <div class="modal-header">
+        <span class="modal-title">❌ Reject Withdrawal</span>
+        <button class="modal-close" id="close-reject">✕</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="reject-reason">Rejection Reason</label>
+        <textarea id="reject-reason" class="form-textarea" placeholder="Reason for rejection..."></textarea>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-secondary btn-full" onclick="document.getElementById('reject-modal').classList.add('hidden')">Cancel</button>
+        <button class="btn btn-danger btn-full" id="confirm-reject">Reject</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { auth, db } from '../js/firebase-config.js';
+    import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import {
+      collection, query, where, orderBy, getDocs, doc, getDoc
+    } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    import {
+      showToast, showSpinner, hideSpinner, initSidebar,
+      formatCoins, formatUSD, formatDateTime, statusBadge,
+      copyToClipboard, truncateAddress, showConfirm
+    } from '../js/utils.js';
+    import { getAdminSidebar } from '../js/admin-sidebar.js';
+    import { approveWithdrawal, rejectWithdrawal } from '../js/coins.js';
+
+    document.getElementById('sidebar-container').innerHTML = getAdminSidebar('withdrawals');
+
+    let rejectTargetId = null;
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) { window.location.href = 'index.html'; return; }
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      if (!snap.exists() || snap.data().role !== 'admin') {
+        await signOut(auth); window.location.href = 'index.html'; return;
+      }
+      const ud = snap.data();
+      document.getElementById('admin-name').textContent   = ud.fullName || 'Admin';
+      document.getElementById('admin-email').textContent  = ud.email || '';
+      document.getElementById('admin-avatar').textContent = (ud.fullName||'A').charAt(0).toUpperCase();
+      initSidebar();
+      document.getElementById('admin-logout-btn').addEventListener('click', async () => { await signOut(auth); window.location.href = 'index.html'; });
+      await loadWithdrawals();
+    });
+
+    async function loadWithdrawals() {
+      const status = document.getElementById('status-filter').value;
+      const tbody  = document.getElementById('withdrawals-tbody');
+      try {
+        let q;
+        if (status) {
+          q = query(collection(db,'coins_transactions'),
+            where('type','==','withdrawal'), where('status','==',status),
+            orderBy('createdAt','desc'));
+        } else {
+          q = query(collection(db,'coins_transactions'),
+            where('type','==','withdrawal'), orderBy('createdAt','desc'));
+        }
+        const snap = await getDocs(q);
+        const pending = snap.docs.filter(d => d.data().status === 'pending').length;
+        document.getElementById('pending-badge').textContent = pending + ' pending';
+
+        if (snap.empty) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:32px">No withdrawal requests found</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = snap.docs.map(d => {
+          const t = d.data(); const id = d.id;
+          const isPending = t.status === 'pending';
+          return `<tr>
+            <td data-label="User">
+              <div style="font-weight:600">${t.userName||'—'}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted)">${t.userEmail||''}</div>
+            </td>
+            <td data-label="Coins" style="font-family:var(--font-display);color:var(--gold)">${formatCoins(t.coins)}</td>
+            <td data-label="USD" style="color:var(--success);font-weight:700">${formatUSD(t.usdAmount)}</td>
+            <td data-label="USDT Address">
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted)" title="${t.usdtAddress||''}">${truncateAddress(t.usdtAddress||'—')}</span>
+                ${t.usdtAddress ? `<button class="btn btn-secondary btn-sm" style="padding:3px 8px;font-size:0.7rem" onclick="copyToClipboard('${t.usdtAddress}')">📋</button>` : ''}
+              </div>
+            </td>
+            <td data-label="Date" style="font-size:0.8rem;color:var(--text-muted)">${formatDateTime(t.createdAt)}</td>
+            <td data-label="Status">${statusBadge(t.status)}</td>
+            <td data-label="Actions">
+              ${isPending ? `
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <button class="btn btn-success btn-sm" onclick="handleApprove('${id}')">✅ Mark Paid</button>
+                  <button class="btn btn-danger btn-sm"  onclick="openReject('${id}')">❌ Reject</button>
+                </div>` : `<span style="color:var(--text-muted);font-size:0.8rem">${t.notes||'Processed'}</span>`}
+            </td>
+          </tr>`;
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" style="color:var(--error);text-align:center;padding:20px">Error: ${err.message}</td></tr>`;
+      }
+    }
+
+    window.copyToClipboard = (addr) => {
+      navigator.clipboard.writeText(addr).then(() => showToast('Address copied!', 'success'));
+    };
+
+    window.handleApprove = (id) => {
+      showConfirm('Mark this withdrawal as PAID? Coins will be deducted from user\'s balance.', async () => {
+        showSpinner();
+        try {
+          await approveWithdrawal(id);
+          hideSpinner();
+          showToast('Withdrawal marked as paid ✅', 'success');
+          await loadWithdrawals();
+        } catch (err) {
+          hideSpinner();
+          showToast('Error: ' + err.message, 'error');
+        }
+      });
+    };
+
+    window.openReject = (id) => {
+      rejectTargetId = id;
+      document.getElementById('reject-reason').value = '';
+      document.getElementById('reject-modal').classList.remove('hidden');
+    };
+    document.getElementById('close-reject').addEventListener('click', () =>
+      document.getElementById('reject-modal').classList.add('hidden')
+    );
+    document.getElementById('confirm-reject').addEventListener('click', async () => {
+      const reason = document.getElementById('reject-reason').value.trim() || 'Rejected by admin';
+      showSpinner();
+      try {
+        await rejectWithdrawal(rejectTargetId, reason);
+        hideSpinner();
+        document.getElementById('reject-modal').classList.add('hidden');
+        showToast('Withdrawal rejected. Coins returned to user.', 'warning');
+        await loadWithdrawals();
+      } catch (err) {
+        hideSpinner();
+        showToast('Error: ' + err.message, 'error');
+      }
+    });
+
+    document.getElementById('status-filter').addEventListener('change', loadWithdrawals);
+    document.getElementById('refresh-btn').addEventListener('click', loadWithdrawals);
+  </script>
+</body>
+</html>
