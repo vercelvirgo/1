@@ -198,6 +198,21 @@ export function copyToClipboard(text, btn = null) {
 
 // ─── Referral Link Builder ────────────────────────────────────────
 export function buildReferralLink(referralCode) {
+  // Fixed for GitHub Pages — always points to correct base
+  const origin = window.location.origin;
+  const path = window.location.pathname;
+  // Extract base path e.g. /vercelvirgo/ from any page
+  const parts = path.split('/');
+  const vvIndex = parts.findIndex(p => p.toLowerCase() === 'vercelvirgo');
+  let base;
+  if (vvIndex !== -1) {
+    base = origin + parts.slice(0, vvIndex + 1).join('/') + '/';
+  } else {
+    base = origin + '/';
+  }
+  return base + 'register.html?ref=' + referralCode;
+}register.html?ref=${referralCode}`;
+}
   const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
   return `${base}register.html?ref=${referralCode}`;
 }
